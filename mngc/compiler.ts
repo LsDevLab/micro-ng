@@ -82,6 +82,7 @@ function processComponent(
 
     const selector = getLiteralValue(arg, 'selector');
     const template = getLiteralValue(arg, 'template');
+    const inputs = getStringArrayValue(arg, 'inputs');
     const className = node.name?.getText() || 'Unknown';
 
     const constructorParams = getConstructorParams(node);
@@ -94,6 +95,7 @@ import { ${className} } from './${basename}.js';
 export const ${className}Factory = {
   selector: '${selector}',
   template: \`${template}\`,
+  inputs: [${inputs.map(i => `'${i}'`).join(', ')}],
   constructorParams: [${constructorParams.map(p => `'${p}'`).join(', ')}],
   className: ${className},
   create: function() {
@@ -145,6 +147,21 @@ function getLiteralValue(obj: ts.ObjectLiteralExpression, key: string): string {
     return '';
 }
 
+function getStringArrayValue(obj: ts.ObjectLiteralExpression, key: string): string[] {
+    const prop = obj.properties.find(
+        p => ts.isPropertyAssignment(p) && p.name?.getText() === key
+    );
+    if (!prop || !ts.isPropertyAssignment(prop)) return [];
+
+    const init = prop.initializer;
+    if (ts.isArrayLiteralExpression(init)) {
+        return init.elements
+            .filter(ts.isStringLiteral)
+            .map(el => el.text);
+    }
+
+    return [];
+}
 
 function getConstructorParams(node: ts.ClassDeclaration): string[] {
     const ctor = node.members.find(ts.isConstructorDeclaration) as

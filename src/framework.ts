@@ -1,5 +1,5 @@
 // src/framework.ts
-export function Component(metadata: { selector: string; template: string }) {
+export function Component(metadata: { selector: string; template: string; inputs?: string[] }) {
     return function (target: any) {
         target.__componentMetadata = metadata;
     };

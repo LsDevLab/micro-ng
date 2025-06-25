@@ -10,12 +10,14 @@ import { CounterService } from './counter-service.js';
       <button (click)="increment()">Increment</button>
       <p>Count2: {{this.counterService.getCount2()}}</p>
       <button (click)="increment2()">Increment2</button>
-      <div>ciao{{varInput}}</div>
+      <div>{{appSignalInput?.get()}}</div>
+      <button (click)="appSignalIncrement()">appSignalInput increment</button>
     </div>
   `,
+    inputs: ['appSignalInput']
 })
 export class Counter {
-    varInput = 1;
+    appSignalInput;
 
     constructor(private counterService: CounterService) {}
 
@@ -25,6 +27,10 @@ export class Counter {
 
     getCount() {
         return this.counterService.getCount();
+    }
+
+    appSignalIncrement(){
+        this.appSignalInput?.set(this.appSignalInput?.getUntracked()+1)
     }
 
     increment(val) {

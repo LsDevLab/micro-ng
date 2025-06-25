@@ -81,9 +81,44 @@ function mountComponent(factory, el, parentInstance = null) {
         });
     }
 
+    const childSelectors = [...componentFactories.keys()].filter(s => s !== factory.selector);
+    let isFirstRender = true;
+
     const render = () => {
-        const rendered = parseTemplate(factory.template, componentInstance);
-        el.innerHTML = rendered;
+        if (!isFirstRender) {
+            // Save current child components before rendering parent
+            const preservedChildren = {};
+            childSelectors.forEach(selector => {
+                preservedChildren[selector] = [];
+                el.querySelectorAll(selector).forEach(childEl => {
+                    preservedChildren[selector].push(childEl);
+                });
+            });
+
+            // Replace child component tags with placeholders in template
+            let rendered = factory.template;
+            childSelectors.forEach(selector => {
+                const regex = new RegExp(`<${selector}[^>]*>.*?<\\/${selector}>`, 'gs');
+                rendered = rendered.replace(regex, `<div data-child="${selector}"></div>`);
+            });
+
+            rendered = parseTemplate(rendered, componentInstance);
+            el.innerHTML = rendered;
+
+            // Restore preserved child components
+            Object.entries(preservedChildren).forEach(([selector, elements]) => {
+                elements.forEach(childEl => {
+                    const placeholder = el.querySelector(`div[data-child="${selector}"]`);
+                    if (placeholder) placeholder.replaceWith(childEl);
+                });
+            });
+        } else {
+            // First render: just render template normally without placeholders
+            const rendered = parseTemplate(factory.template, componentInstance);
+            el.innerHTML = rendered;
+            isFirstRender = false;
+        }
+
         bindEvents(el, componentInstance, render);
     };
 
