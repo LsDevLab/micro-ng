@@ -5,10 +5,19 @@ import {signal} from "./reactivity";
 @Component({
     selector: '#app',
     template: `
-    <h1>Mini Angular Clone (TS + DI) {{appSignal.get()}}</h1>
-    <counter-component appSignalInput="appSignal"></counter-component>
+    <div style="background: indianred; padding: 15px; display: flex; flex-direction: column; gap: 15px">
+        <h1>Mini Angular Clone (TS + DI) {{appSignal.get()}}</h1>
+        <button (click)="appSignalIncrement()">appSignal increment</button>
+        <counter-component appSignalInput="appSignal"></counter-component>
+        <counter-component></counter-component>
+        <div>Rendered on: {{ new Date().toISOString() }}</div>
+    </div>
   `,
 })
 export class App {
     appSignal = signal(178)
+
+    appSignalIncrement(){
+        this.appSignal.set(this.appSignal.getUntracked()+2)
+    }
 }
