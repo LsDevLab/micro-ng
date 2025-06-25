@@ -1,8 +1,8 @@
 // main.ts
-import { registerFactory, bootstrap } from './dist/runtime.js';
-import { AppFactory } from './dist/app.factory.js';
-import { CounterFactory } from './dist/counter.factory.js';
-import { CounterServiceFactory } from './dist/counter-service.factory.js';
+import { registerFactory, bootstrap } from './src-gen/runtime.js';
+import { AppFactory } from './src-gen/app.factory.js';
+import { CounterFactory } from './src-gen/counter.factory.js';
+import { CounterServiceFactory } from './src-gen/counter-service.factory.js';
 
 // Import actual classes into globalThis for DI lookup
 import { CounterService } from './dist/counter-service.js';

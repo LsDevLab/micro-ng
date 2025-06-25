@@ -1,10 +1,10 @@
-// src/app.ts
-import { Component } from './framework.js';
-import {signal} from "./reactivity";
 
-@Component({
-    selector: '#app',
-    template: `
+// Auto-generated factory for App
+import { App } from './app.js';
+
+export const AppFactory = {
+  selector: '#app',
+  template: `
     <div style="background: indianred; padding: 15px; display: flex; flex-direction: column; gap: 15px">
         <h1>Microng test v3 {{appSignal.get()}}</h1>
         <button (click)="appSignalIncrement()">appSignal increment</button>
@@ -14,11 +14,13 @@ import {signal} from "./reactivity";
     </div>
     </div>
   `,
-})
-export class App {
-    appSignal = signal(178)
-
-    appSignalIncrement(){
-        this.appSignal.set(this.appSignal.getUntracked()+2)
-    }
-}
+  inputs: [],
+  constructorParams: [],
+  className: App,
+  create: function() {
+    const deps = this.constructorParams.map(dep => {
+      return globalThis.resolveDependency(dep);
+    });
+    return new this.className(...deps);
+  }
+};

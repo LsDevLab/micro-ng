@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const srcDir = path.resolve('./src');
-const outDir = path.resolve('./dist');
+const outDir = path.resolve('./src-gen');
 
 // Recursively find all .ts files in src/
 function findAllTSFiles(dir: string): string[] {
