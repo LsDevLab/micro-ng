@@ -1,12 +1,39 @@
-// mngc/compiler.ts
 import * as ts from 'typescript';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const srcDir = path.resolve('./src');
-const outDir = path.resolve('./src-gen');
+const outDir = path.resolve('./dist-dev');
+const rootIndexPath = path.resolve('./index.html');
+const genIndexPath = path.join(outDir, 'index.html');
+const genEntrypointPath = path.join(outDir, 'entrypoint.js');
 
-// Recursively find all .ts files in src/
+if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+}
+
+const srcFiles = findAllTSFiles(srcDir);
+
+const discoveredFactories: {
+    name: string;          // basename, eg 'app'
+    factoryVarName: string; // eg 'AppFactory'
+    className: string;     // eg 'App'
+}[] = [];
+
+srcFiles.forEach(file => {
+    processFile(file);
+    transpileToJS(file);
+});
+
+generateIndexHtml();
+generateEntrypoint(discoveredFactories, 'AppFactory');
+
+
+
+// ------------------------
+// Functions
+// ------------------------
+
 function findAllTSFiles(dir: string): string[] {
     let results: string[] = [];
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -19,32 +46,15 @@ function findAllTSFiles(dir: string): string[] {
             results.push(fullPath);
         }
     }
-
     return results;
 }
 
-// Ensure dist/ exists
-if (!fs.existsSync(outDir)) {
-    fs.mkdirSync(outDir, { recursive: true });
-}
-
-const srcFiles = findAllTSFiles(srcDir);
-
-srcFiles.forEach(file => {
-    processFile(file);
-    transpileToJS(file);
-});
-
-// -----------------------------------
-// Factory generation logic
-// -----------------------------------
-
 function processFile(filePath: string) {
     const source = ts.createSourceFile(
-        filePath,
-        fs.readFileSync(filePath, 'utf-8'),
-        ts.ScriptTarget.ESNext,
-        true
+      filePath,
+      fs.readFileSync(filePath, 'utf-8'),
+      ts.ScriptTarget.ESNext,
+      true
     );
 
     source.forEachChild(node => {
@@ -74,9 +84,9 @@ function processFile(filePath: string) {
 }
 
 function processComponent(
-    node: ts.ClassDeclaration,
-    arg: ts.Expression,
-    filePath: string
+  node: ts.ClassDeclaration,
+  arg: ts.Expression,
+  filePath: string
 ) {
     if (!ts.isObjectLiteralExpression(arg)) return;
 
@@ -84,9 +94,16 @@ function processComponent(
     const template = getLiteralValue(arg, 'template');
     const inputs = getStringArrayValue(arg, 'inputs');
     const className = node.name?.getText() || 'Unknown';
+    const basename = path.basename(filePath, '.ts');
+
+    // Track factories for entrypoint generation
+    discoveredFactories.push({
+        name: basename,
+        factoryVarName: `${className}Factory`,
+        className: className,
+    });
 
     const constructorParams = getConstructorParams(node);
-    const basename = path.basename(filePath, '.ts');
 
     const factoryCode = `
 // Auto-generated factory for ${className}
@@ -114,6 +131,13 @@ function processInjectable(node: ts.ClassDeclaration, filePath: string) {
     const className = node.name?.getText() || 'Unknown';
     const basename = path.basename(filePath, '.ts');
 
+    // Track factories for entrypoint generation
+    discoveredFactories.push({
+        name: basename,
+        factoryVarName: `${className}Factory`,
+        className: className,
+    });
+
     const factoryCode = `
 // Auto-generated factory for ${className}
 import { ${className} } from './${basename}.js';
@@ -128,7 +152,7 @@ export const ${className}Factory = {
 
 function getLiteralValue(obj: ts.ObjectLiteralExpression, key: string): string {
     const prop = obj.properties.find(
-        p => ts.isPropertyAssignment(p) && p.name?.getText() === key
+      p => ts.isPropertyAssignment(p) && p.name?.getText() === key
     );
     if (!prop || !ts.isPropertyAssignment(prop)) return '';
 
@@ -140,7 +164,6 @@ function getLiteralValue(obj: ts.ObjectLiteralExpression, key: string): string {
         return init.text;
     }
     if (ts.isTemplateExpression(init)) {
-        // Optional: Warn or handle more complex interpolated templates
         return init.getText();
     }
 
@@ -149,15 +172,15 @@ function getLiteralValue(obj: ts.ObjectLiteralExpression, key: string): string {
 
 function getStringArrayValue(obj: ts.ObjectLiteralExpression, key: string): string[] {
     const prop = obj.properties.find(
-        p => ts.isPropertyAssignment(p) && p.name?.getText() === key
+      p => ts.isPropertyAssignment(p) && p.name?.getText() === key
     );
     if (!prop || !ts.isPropertyAssignment(prop)) return [];
 
     const init = prop.initializer;
     if (ts.isArrayLiteralExpression(init)) {
         return init.elements
-            .filter(ts.isStringLiteral)
-            .map(el => el.text);
+          .filter(ts.isStringLiteral)
+          .map(el => el.text);
     }
 
     return [];
@@ -165,13 +188,12 @@ function getStringArrayValue(obj: ts.ObjectLiteralExpression, key: string): stri
 
 function getConstructorParams(node: ts.ClassDeclaration): string[] {
     const ctor = node.members.find(ts.isConstructorDeclaration) as
-        | ts.ConstructorDeclaration
-        | undefined;
+      | ts.ConstructorDeclaration
+      | undefined;
     if (!ctor || !ctor.parameters) return [];
     return ctor.parameters.map(p => p.type ? p.type.getText() : 'any');
 }
 
-// Transpile TS → JS
 function transpileToJS(filePath: string) {
     const tsCode = fs.readFileSync(filePath, 'utf-8');
     const transpiled = ts.transpileModule(tsCode, {
@@ -185,9 +207,62 @@ function transpileToJS(filePath: string) {
     });
 
     const outputPath = path.join(
-        outDir,
-        path.basename(filePath).replace(/\.ts$/, '.js')
+      outDir,
+      path.basename(filePath).replace(/\.ts$/, '.js')
     );
 
     fs.writeFileSync(outputPath, transpiled.outputText);
+}
+
+
+// ---------------------------------------------------
+// New: generate dist-dev/index.html with script injection
+// ---------------------------------------------------
+function generateIndexHtml() {
+    const html = fs.readFileSync(rootIndexPath, 'utf-8');
+    const scriptTag = `<script type="module" src="./entrypoint.js"></script>`;
+
+    // Insert before </body>
+    const newHtml = html.replace(
+      /<\/body>/i,
+      `${scriptTag}\n</body>`
+    );
+
+    fs.writeFileSync(genIndexPath, newHtml, 'utf-8');
+    console.log('[AOT] Generated dist-dev/index.html');
+}
+
+// ---------------------------------------------------
+// New: generate dist-dev/entrypoint.js importing & bootstrapping factories
+// ---------------------------------------------------
+function generateEntrypoint(factories: typeof discoveredFactories, mainFactoryName: string) {
+    const lines = [
+        `import { registerFactory, bootstrap } from './runtime.js';`,
+    ];
+
+    // Imports factories and classes
+    factories.forEach(({ name, factoryVarName, className }) => {
+        lines.push(`import { ${factoryVarName} } from './${name}.factory.js';`);
+    });
+    factories.forEach(({ name, className }) => {
+        lines.push(`import { ${className} } from './${name}.js';`);
+    });
+
+    // Attach classes to globalThis
+    factories.forEach(({ className }) => {
+        lines.push(`globalThis.${className} = ${className};`);
+    });
+
+    // Register all factories
+    factories.forEach(({ factoryVarName }) => {
+        lines.push(`registerFactory(${factoryVarName});`);
+    });
+
+    // Bootstrap main component
+    lines.push(`bootstrap(${mainFactoryName});`);
+
+    const content = lines.join('\n') + '\n';
+
+    fs.writeFileSync(genEntrypointPath, content, 'utf-8');
+    console.log('[AOT] Generated dist-dev/entrypoint.js');
 }

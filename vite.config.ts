@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import path from 'path';
 
 export default defineConfig({
+    root: 'dist-dev', // <-- serve from dist-dev/
     resolve: {
         extensions: ['.ts', '.js', '.json'],
     },
@@ -24,7 +25,7 @@ export default defineConfig({
     },
     server: {
         watch: {
-            ignored: ['!**/src-gen/**'] // ensure src-gen is not ignored
+            ignored: ['!**/dist-dev/**'] // ensure dist-dev is not ignored
         },
         open: true,
     },

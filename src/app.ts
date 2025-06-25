@@ -6,7 +6,7 @@ import {signal} from "./reactivity";
     selector: '#app',
     template: `
     <div style="background: indianred; padding: 15px; display: flex; flex-direction: column; gap: 15px">
-        <h1>Microng test v3 {{appSignal.get()}}</h1>
+        <h1>Microng test v4 {{appSignal.get()}}</h1>
         <button (click)="appSignalIncrement()">appSignal increment</button>
         <counter-component appSignalInput="appSignal"></counter-component>
         <counter-component></counter-component>
