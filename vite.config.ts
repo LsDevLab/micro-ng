@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite';
 import { exec } from 'child_process';
+import chokidar from 'chokidar';
 import path from 'path';
 
 export default defineConfig({
-    root: 'dist-dev', // <-- serve from dist-dev/
+    root: 'dist-dev', // Tell Vite to serve from dist-dev (formerly src-gen)
     resolve: {
         extensions: ['.ts', '.js', '.json'],
     },
@@ -13,9 +14,9 @@ export default defineConfig({
     build: {
         target: 'esnext',
         sourcemap: true,
-        outDir: 'dist',
+        outDir: '../dist', // Output final build outside dist-dev
         rollupOptions: {
-            input: './index.html',
+            input: './index.html', // resolved from root: 'dist-dev'
             output: {
                 entryFileNames: '[name].js',
                 chunkFileNames: '[name].js',
@@ -24,41 +25,35 @@ export default defineConfig({
         },
     },
     server: {
-        watch: {
-            ignored: ['!**/dist-dev/**'] // ensure dist-dev is not ignored
-        },
         open: true,
+        watch: {
+            ignored: [], // allow watching everything (we override with chokidar anyway)
+        },
     },
     plugins: [
-
         {
             name: 'aot-compiler-watcher',
             configureServer(server) {
-                server.middlewares.use((req, res, next) => {
-                    res.setHeader('Cache-Control', 'no-cache');
-                    next();
+                // ✅ Watch `src` manually to trigger rebuilds
+                const watcher = chokidar.watch(path.resolve('src'), {
+                    ignored: /(^|[/\\])\../, // ignore dotfiles
+                    ignoreInitial: true,
                 });
-            },
-            async handleHotUpdate(ctx) {
-                const file = ctx.file;
 
-                // Only watch .ts files in src/
-                if (!file.endsWith('.ts') || !file.includes('/src/')) return;
+                watcher.on('change', (file) => {
+                    if (!file.endsWith('.ts')) return;
 
-                console.log('[AOT] File changed:', ctx.file);
-                return new Promise((resolve) => {
+                    console.log('[AOT] File changed:', file);
                     exec('node --loader ts-node/esm mngc/compiler.ts', (err, stdout, stderr) => {
                         if (err) {
                             console.error('[AOT Compiler Error]', err.message);
                         } else {
                             console.log('[AOT] Recompiled');
-                            //This is the KEY part that triggers reload
-                            ctx.server.ws.send({
+                            server.ws.send({
                                 type: 'full-reload',
                                 path: '*',
                             });
                         }
-                        resolve([]);
                     });
                 });
             },

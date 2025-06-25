@@ -4,21 +4,21 @@ import { CounterService } from './counter-service.js';
 import {signal} from "./reactivity";
 
 @Component({
-    selector: 'counter-component',
+    selector: 'counter-green-component',
     template: `
-    <div style="background: dodgerblue; padding: 15px; ">
+    <div style="background: lightgreen; padding: 15px; ">
       <p>Count: {{getCount() * 10}}</p>
       <button (click)="increment()">Increment</button>
       <p>Count2: {{this.count2.get()}}</p>
       <button (click)="increment2()">Increment2</button>
-      <p>{{appSignalInput?.get()}}</p>
+      <div>{{appSignalInput?.get()}}</div>
       <button (click)="appSignalIncrement()">appSignalInput increment</button>
-      <p>Rendered on: {{ new Date().toISOString() }}</p>
+      <div>Rendered on: {{ new Date().toISOString() }}</div>
     </div>
   `,
     inputs: ['appSignalInput']
 })
-export class Counter {
+export class CounterGreen {
     appSignalInput;
 
     count2 = signal(3);

@@ -6,12 +6,12 @@ import {signal} from "./reactivity";
     selector: '#app',
     template: `
     <div style="background: indianred; padding: 15px; display: flex; flex-direction: column; gap: 15px">
-        <h1>Microng test v4 {{appSignal.get()}}</h1>
+        <h1>Microng test v5.1 {{appSignal.get()}}</h1>
         <button (click)="appSignalIncrement()">appSignal increment</button>
         <counter-component appSignalInput="appSignal"></counter-component>
+        <counter-green-component></counter-green-component>
         <counter-component></counter-component>
-        <div>Rendered on: {{ new Date().toISOString() }}</div>
-    </div>
+        <div>Rendered on: {{ new Date().toISOString() }} </div>
     </div>
   `,
 })
