@@ -266,3 +266,4 @@ function generateEntrypoint(factories: typeof discoveredFactories, mainFactoryNa
     fs.writeFileSync(genEntrypointPath, content, 'utf-8');
     console.log('[AOT] Generated dist-dev/entrypoint.js');
 }
+

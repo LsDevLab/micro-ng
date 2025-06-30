@@ -31,32 +31,32 @@ export default defineConfig({
         },
     },
     plugins: [
-        {
-            name: 'aot-compiler-watcher',
-            configureServer(server) {
-                // ✅ Watch `src` manually to trigger rebuilds
-                const watcher = chokidar.watch(path.resolve('src'), {
-                    ignored: /(^|[/\\])\../, // ignore dotfiles
-                    ignoreInitial: true,
-                });
-
-                watcher.on('change', (file) => {
-                    if (!file.endsWith('.ts')) return;
-
-                    console.log('[AOT] File changed:', file);
-                    exec('node --loader ts-node/esm mngc/compiler.ts', (err, stdout, stderr) => {
-                        if (err) {
-                            console.error('[AOT Compiler Error]', err.message);
-                        } else {
-                            console.log('[AOT] Recompiled');
-                            server.ws.send({
-                                type: 'full-reload',
-                                path: '*',
-                            });
-                        }
-                    });
-                });
-            },
-        },
+        // {
+        //     name: 'aot-compiler-watcher',
+        //     configureServer(server) {
+        //         // ✅ Watch `src` manually to trigger rebuilds
+        //         const watcher = chokidar.watch(path.resolve('src'), {
+        //             ignored: /(^|[/\\])\../, // ignore dotfiles
+        //             ignoreInitial: true,
+        //         });
+        //
+        //         watcher.on('change', (file) => {
+        //             if (!file.endsWith('.ts')) return;
+        //
+        //             console.log('[AOT] File changed:', file);
+        //             exec('node --loader ts-node/esm mngc/compiler.ts', (err, stdout, stderr) => {
+        //                 if (err) {
+        //                     console.error('[AOT Compiler Error]', err.message);
+        //                 } else {
+        //                     console.log('[AOT] Recompiled');
+        //                     server.ws.send({
+        //                         type: 'full-reload',
+        //                         path: '*',
+        //                     });
+        //                 }
+        //             });
+        //         });
+        //     },
+        // },
     ],
 });
